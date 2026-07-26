@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Online – Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="container">
+  <h1>Order Online – Delivery</h1>
+  <div class="tabs">
+    <div class="tab active" data-step="menu">1. Menu</div>
+    <div class="tab" data-step="details">2. Details</div>
+    <div class="tab" data-step="payment">3. Payment</div>
+  </div>
+
+  <div id="step-menu">
+    <div id="menu"></div>
+    <div style="margin-top:16px;text-align:right;">
+      <button class="btn gold" onclick="goStep('details')">Continue →</button>
+    </div>
+  </div>
+
+  <div id="step-details" class="hidden">
+    <div class="card">
+      <h3>Delivery Details</h3>
+      <label>Full Name</label><input id="fName">
+      <label>Phone Number</label><input id="fPhone">
+      <label>Delivery Address</label><textarea id="fAddress" rows="3"></textarea>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn outline" onclick="goStep('menu')">← Back</button>
+        <button class="btn gold" onclick="validateDetails()">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="step-payment" class="hidden">
+    <div class="card">
+      <h3>Select Payment Method</h3>
+      <div class="grid grid-2" style="margin-top:12px;">
+        ${''}
+        <label class="card" style="cursor:pointer;"><input type="radio" name="pm" value="PHONEPE" checked> PhonePe</label>
+        <label class="card" style="cursor:pointer;"><input type="radio" name="pm" value="GPAY"> Google Pay</label>
+        <label class="card" style="cursor:pointer;"><input type="radio" name="pm" value="PAYTM"> Paytm</label>
+        <label class="card" style="cursor:pointer;"><input type="radio" name="pm" value="COD"> Cash on Delivery</label>
+      </div>
+      <div style="margin-top:16px;" id="summary"></div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn outline" onclick="goStep('details')">← Back</button>
+        <button class="btn gold" id="payBtn" onclick="placeOnline()">Place Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+injectChrome('order-online.html');
+renderMenu('menu');
+
+// Open the requested step from the URL
+const params = new URLSearchParams(window.location.search);
+const step = params.get("step");
+
+if (step === "details") {
+  setTimeout(() => {
+    goStep("details");
+  }, 300);
+}
+
+if (step === "payment") {
+  setTimeout(() => {
+    goStep("payment");
+  }, 300);
+}
+
+function goStep(name) {
+  ['menu','details','payment'].forEach(s => {
+    document.getElementById('step-'+s).classList.toggle('hidden', s!==name);
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.step===name));
+  });
+  if (name==='payment') {
+    document.getElementById('summary').innerHTML =
+      Cart.get().map(i=>`<div>${i.name} × ${i.qty} = ₹${(i.qty*i.price).toFixed(0)}</div>`).join('') +
+      `<hr><strong>Total: ₹${Cart.total().toFixed(0)}</strong>`;
+  }
+}
+function validateDetails() {
+  if (!document.getElementById('fName').value || !document.getElementById('fPhone').value
+      || !document.getElementById('fAddress').value) { alert('Please fill all fields.'); return; }
+  if (Cart.count()===0) { alert('Cart is empty.'); return; }
+  goStep('payment');
+}
+async function placeOnline() {
+  document.getElementById('payBtn').disabled = true;
+  try {
+    const res = await api('/orders', { method:'POST', body: {
+      type:'DELIVERY', roomId: null,
+      customerName: document.getElementById('fName').value,
+      customerPhone: document.getElementById('fPhone').value,
+      address: document.getElementById('fAddress').value,
+      paymentMethod: document.querySelector('input[name=pm]:checked').value,
+      total: Cart.total(),
+      items: JSON.stringify(Cart.get())
+    }});
+    Cart.clear();
+    localStorage.setItem('lastOrder', JSON.stringify(res.order));
+    location.href = 'order-placed.html?id=' + res.id;
+  } catch(e) {
+    alert('Failed. Is backend running?');
+    document.getElementById('payBtn').disabled = false;
+  }
+}
+</script>
+</body></html>

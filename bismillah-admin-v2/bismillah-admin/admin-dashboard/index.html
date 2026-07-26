@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard — Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" class="login-wrap">
+  <form class="login-card" onsubmit="event.preventDefault(); doLogin();">
+    <div class="brand-lg">Bismillah</div>
+    <div class="brand-sub">HOUSE OF BIRYANIS &amp; KEBABS</div>
+    <h2>🔐 Admin Login</h2>
+    <p class="muted">Enter your PIN to continue</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+    <button class="btn gold w-full" type="submit">Enter Dashboard</button>
+    <div id="loginErr" class="err"></div>
+  </form>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+
+  <aside class="sidebar">
+    <div class="side-brand">
+      <div class="logo">B</div>
+      <div>
+        <div class="side-title">Bismillah</div>
+        <div class="side-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="side-nav">
+      <a class="nav-item active" data-view="dashboard"><span>📊</span> Dashboard</a>
+      <a class="nav-item" data-view="dinein"><span>🍽️</span> Dine-In Orders <b id="badgeDine" class="badge"></b></a>
+      <a class="nav-item" data-view="delivery"><span>🚚</span> Delivery Orders <b id="badgeDel" class="badge"></b></a>
+      <a class="nav-item" data-view="menu"><span>🍛</span> Menu Management</a>
+      <a class="nav-item" data-view="reports"><span>📈</span> Reports</a>
+      <a class="nav-item" data-view="notifs"><span>🔔</span> Live Notifications <b id="badgeNotif" class="badge"></b></a>
+    </nav>
+
+    <div class="side-foot">
+      <button class="btn ghost w-full" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="muted small" id="viewSub">Overview of today's activity</div>
+      </div>
+      <div class="topbar-right">
+        <label class="soundToggle">
+          <input type="checkbox" id="soundOn" checked> 🔊 Chime on new order
+        </label>
+        <div class="live-dot"><span></span> LIVE</div>
+      </div>
+    </header>
+
+    <!-- Views -->
+    <section id="view-dashboard" class="view"></section>
+    <section id="view-dinein" class="view hidden"></section>
+    <section id="view-delivery" class="view hidden"></section>
+    <section id="view-menu" class="view hidden"></section>
+    <section id="view-reports" class="view hidden"></section>
+    <section id="view-notifs" class="view hidden"></section>
+  </main>
+</div>
+
+<!-- toast container -->
+<div id="toasts"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

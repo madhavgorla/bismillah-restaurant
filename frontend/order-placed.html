@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Placed – Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="container" style="text-align:center;">
+  <div class="card" style="max-width:520px;margin:20px auto;">
+    <h1 style="color:var(--success);">✓ Order Placed!</h1>
+    <p>Thank you. Your order is being prepared.</p>
+    <div id="details"></div>
+    <a href="track.html" class="btn">Track Order</a>
+    <a href="menu.html" class="btn outline">Order More</a>
+  </div>
+</div>
+<script src="app.js"></script>
+<script>
+injectChrome('');
+const id = new URLSearchParams(location.search).get('id');
+async function load() {
+  try {
+    const o = await api('/orders/' + id);
+    const items = JSON.parse(o.itemsJson);
+    document.getElementById('details').innerHTML = `
+      <h2>${o.orderNumber}</h2>
+      ${o.roomId ? `<p><strong>Room:</strong> ${o.customerName}</p>` : ''}
+      ${o.address && o.address !== '-' ? `<p><strong>Delivery to:</strong> ${o.address}</p>` : ''}
+      <div style="text-align:left; margin:16px auto; max-width:320px;">
+        ${items.map(i=>`<div>${i.name} × ${i.qty} — ₹${(i.qty*i.price).toFixed(0)}</div>`).join('')}
+        <hr><strong>Total: ₹${Number(o.total).toFixed(0)}</strong>
+      </div>
+      <p><small>Order ID: ${o.id} — save this for tracking.</small></p>`;
+  } catch(e) { document.getElementById('details').textContent = 'Order not found.'; }
+}
+load();
+</script>
+</body></html>

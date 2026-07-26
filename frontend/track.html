@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Order – Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="container">
+  <h1>Track Your Order</h1>
+  <div class="card">
+    <label>Order ID (from your receipt)</label>
+    <input id="oid" placeholder="e.g. 42">
+    <button class="btn" style="margin-top:12px;" onclick="track()">Track</button>
+  </div>
+  <div id="out" style="margin-top:16px;"></div>
+</div>
+<script src="app.js"></script>
+<script>
+injectChrome('track.html');
+async function track() {
+  const id = document.getElementById('oid').value.trim();
+  if (!id) return;
+  try {
+    const o = await api('/orders/' + id);
+    document.getElementById('out').innerHTML = `
+      <div class="card">
+        <h2>${o.orderNumber} <span class="status-badge ${o.status}">${o.status}</span></h2>
+        <p><strong>Type:</strong> ${o.type}</p>
+        <p><strong>Total:</strong> ₹${Number(o.total).toFixed(0)}</p>
+      </div>`;
+  } catch(e) {
+    document.getElementById('out').innerHTML = '<div class="card">Order not found.</div>';
+  }
+}
+</script>
+</body></html>

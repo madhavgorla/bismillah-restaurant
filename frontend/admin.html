@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard – Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="container">
+  <div id="login">
+    <div class="card" style="max-width:380px;margin:40px auto;text-align:center;">
+      <h1>Admin Login</h1>
+      <p>Enter your 4-digit PIN.</p>
+      <input id="pin" type="password" maxlength="8" style="text-align:center;font-size:22px;letter-spacing:8px;">
+      <button class="btn gold" style="margin-top:12px;" onclick="login()">Enter</button>
+      <div id="err" style="color:var(--danger);margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="dash" class="hidden">
+    <h1>Live Orders</h1>
+    <p>New orders play a chime and pulse red. Refreshes every 4 seconds.</p>
+
+    <div class="grid grid-3" id="stats" style="margin:16px 0;"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-view="orders">Orders</div>
+      <div class="tab" data-view="rooms">Rooms</div>
+      <div class="tab" data-view="bookings">Bookings</div>
+    </div>
+
+    <div id="v-orders"></div>
+    <div id="v-rooms" class="hidden"></div>
+    <div id="v-bookings" class="hidden"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+injectChrome('admin.html');
+let seenIds = new Set();
+let firstLoad = true;
+let pollTimer = null;
+
+async function login() {
+  const pin = document.getElementById('pin').value;
+  try {
+    const r = await api('/admin/login', { method:'POST', body:{ pin }});
+    if (!r.ok) { document.getElementById('err').textContent = 'Wrong PIN.'; return; }
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('dash').classList.remove('hidden');
+    sessionStorage.setItem('adminOk','1');
+    startPolling();
+  } catch(e) { document.getElementById('err').textContent = 'Backend unreachable.'; }
+}
+
+if (sessionStorage.getItem('adminOk')==='1') {
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('dash').classList.remove('hidden');
+  startPolling();
+}
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  ['orders','rooms','bookings'].forEach(v =>
+    document.getElementById('v-'+v).classList.toggle('hidden', v!==t.dataset.view));
+});
+
+function startPolling() {
+  refresh();
+  pollTimer && clearInterval(pollTimer);
+  pollTimer = setInterval(refresh, 4000);
+}
+
+async function refresh() {
+  try {
+    const [orders, rooms, bookings] = await Promise.all([
+      api('/orders'), api('/rooms'), api('/bookings')
+    ]);
+    // New order detection
+    const newOnes = orders.filter(o => o.status==='NEW' && !seenIds.has(o.id));
+    if (!firstLoad && newOnes.length > 0) playChime();
+    orders.forEach(o => seenIds.add(o.id));
+    firstLoad = false;
+
+    // Stats
+    const todayCount = orders.length;
+    const revenue = orders.filter(o=>o.status!=='CANCELLED').reduce((s,o)=>s+Number(o.total),0);
+    const newCount = orders.filter(o=>o.status==='NEW').length;
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="n">${todayCount}</div><div class="l">Total Orders</div></div>
+      <div class="stat"><div class="n">${newCount}</div><div class="l">New / Pending</div></div>
+      <div class="stat"><div class="n">₹${revenue.toFixed(0)}</div><div class="l">Revenue</div></div>`;
+
+    // Orders
+    document.getElementById('v-orders').innerHTML = orders.map(o => {
+      const items = JSON.parse(o.itemsJson);
+      return `<div class="card order-card ${o.status.toLowerCase()}" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h3 style="margin:0;">${o.orderNumber} <span class="status-badge ${o.status}">${o.status}</span></h3>
+            <small>${o.type==='DINE_IN'?'🍽 '+o.customerName:'🛵 '+o.customerName+' • '+o.customerPhone}</small>
+          </div>
+          <div style="text-align:right;"><strong>₹${Number(o.total).toFixed(0)}</strong></div>
+        </div>
+        <div style="margin:8px 0; color:var(--muted); font-size:14px;">
+          ${items.map(i=>`${i.name} × ${i.qty}`).join(' • ')}
+        </div>
+        ${o.address && o.address!=='-' ? `<div style="font-size:13px;">📍 ${o.address}</div>` : ''}
+        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+          ${o.status==='NEW' ? `<button class="btn small" onclick="setStatus(${o.id},'ACCEPTED')">Accept</button>
+                                <button class="btn small danger" onclick="setStatus(${o.id},'CANCELLED')">Cancel</button>` : ''}
+          ${o.status==='ACCEPTED' ? `<button class="btn small gold" onclick="setStatus(${o.id},'READY')">Mark Ready</button>` : ''}
+          ${o.status==='READY' ? `<button class="btn small" onclick="setStatus(${o.id},'DELIVERED')">Complete</button>` : ''}
+        </div>
+      </div>`;
+    }).join('') || '<div class="card">No orders yet.</div>';
+
+    // Rooms
+    document.getElementById('v-rooms').innerHTML = `<div class="rooms">${
+      rooms.map(r=>`<div class="room ${r.occupied?'occupied':'available'}">
+        <h3>${r.name}</h3><div class="status">${r.occupied?'OCCUPIED':'AVAILABLE'}</div>
+        <button class="btn small" style="margin-top:8px;" onclick="toggleRoom(${r.id},${!r.occupied})">
+          Mark ${r.occupied?'Free':'Occupied'}
+        </button>
+      </div>`).join('')
+    }</div>`;
+
+    // Bookings
+    document.getElementById('v-bookings').innerHTML = bookings.map(b => `
+      <div class="card" style="margin-bottom:10px;">
+        <strong>${b.name}</strong> — ${b.phone}<br>
+        ${b.guests} guests • ${new Date(b.bookingTime).toLocaleString()}
+        ${b.notes ? `<br><small>${b.notes}</small>` : ''}
+      </div>`).join('') || '<div class="card">No bookings.</div>';
+
+  } catch(e) { console.error(e); }
+}
+
+async function setStatus(id, status) {
+  await api(`/orders/${id}/status`, { method:'PUT', body:{ status }});
+  refresh();
+}
+async function toggleRoom(id, occupied) {
+  await api(`/rooms/${id}/occupied`, { method:'PUT', body:{ occupied }});
+  refresh();
+}
+</script>
+</body></html>

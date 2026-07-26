@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Menu – Bismillah</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Our Menu</h1>
+
+  <p>
+    Browse our full menu in English or తెలుగు.
+    Add items to cart, then proceed to checkout.
+  </p>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <input
+            type="text"
+            id="searchMenu"
+            placeholder="🔍 Search your favourite dish..."
+            autocomplete="off">
+  </div>
+
+  <div id="menu"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+<script>
+  injectChrome('menu.html');
+  renderMenu('menu');
+</script>
+
+</body>
+</html>

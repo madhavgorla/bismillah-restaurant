@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dine-In – Bismillah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"></head>
+<body>
+<div class="container">
+  <div id="step-room">
+    <h1>Choose Your Table</h1>
+    <p>Select an available room to start your dine-in order.</p>
+    <div id="rooms" class="rooms"></div>
+  </div>
+
+  <div id="step-menu" class="hidden">
+    <h1>Order for <span id="roomLabel"></span></h1>
+    <button class="btn outline small" onclick="backToRooms()">← Change Table</button>
+    <div id="menu" style="margin-top:12px;"></div>
+    <div style="margin-top:16px;">
+      <button class="btn gold" onclick="placeDineIn()" id="placeBtn">Place Order</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+injectChrome('dine-in.html');
+let selectedRoom = null;
+
+async function loadRooms() {
+  const rooms = await api('/rooms');
+  const el = document.getElementById('rooms');
+  el.innerHTML = rooms.map(r => `
+    <div class="room ${r.occupied?'occupied':'available'}" data-id="${r.id}" data-name="${r.name}">
+      <h3>${r.name}</h3>
+      <div>Seats: ${r.capacity}</div>
+      <div class="status">${r.occupied?'OCCUPIED':'AVAILABLE'}</div>
+    </div>`).join('');
+  el.querySelectorAll('.room.available').forEach(d => d.onclick = () => {
+    selectedRoom = { id: +d.dataset.id, name: d.dataset.name };
+    document.getElementById('step-room').classList.add('hidden');
+    document.getElementById('step-menu').classList.remove('hidden');
+    document.getElementById('roomLabel').textContent = selectedRoom.name;
+    renderMenu('menu');
+  });
+}
+
+function backToRooms() {
+  document.getElementById('step-menu').classList.add('hidden');
+  document.getElementById('step-room').classList.remove('hidden');
+  loadRooms();
+}
+
+async function placeDineIn() {
+  const items = Cart.get();
+  if (items.length === 0) { alert('Add at least one item.'); return; }
+  document.getElementById('placeBtn').disabled = true;
+  try {
+    const res = await api('/orders', { method:'POST', body: {
+      type:'DINE_IN', roomId: selectedRoom.id,
+      customerName: selectedRoom.name, customerPhone:'-', address:'-',
+      paymentMethod:'PAY_AT_TABLE',
+      total: Cart.total(), items: JSON.stringify(items)
+    }});
+    Cart.clear();
+    localStorage.setItem('lastOrder', JSON.stringify(res.order));
+    location.href = 'order-placed.html?id=' + res.id;
+  } catch(e) {
+    alert('Failed to place order. Is backend running?');
+    document.getElementById('placeBtn').disabled = false;
+  }
+}
+
+loadRooms();
+</script>
+</body></html>
