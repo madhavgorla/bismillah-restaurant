@@ -1,6 +1,6 @@
 /* ============ Bismillah – shared JS ============ */
 
-const API = 'http://localhost:8080/api';
+const API = 'https://bismillah-restaurant-api.onrender.com/api';
 
 
 // ---------- Cart (localStorage) ----------
