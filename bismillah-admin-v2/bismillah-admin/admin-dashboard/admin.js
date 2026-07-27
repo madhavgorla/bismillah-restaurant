@@ -2,7 +2,7 @@
    Bismillah — Admin Dashboard (standalone)
    Talks to Spring Boot backend at API base below.
    =================================================================== */
-const API = 'http://localhost:8080/api';
+const API = "https://bismillah-restaurant-api.onrender.com/api";
 const POLL_MS = 4000;
 
 /* ---------- Small helpers ---------- */
